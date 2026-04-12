@@ -1,0 +1,1 @@
+this dir used to save all your AI agent's temp/mid summaries, the final summary should save in the docs/development/YY-MM-DD/ for long-term storage, and the AI agent should check the docs/development/ before create new summary in .ai/summaries/ to avoid duplicate work.
