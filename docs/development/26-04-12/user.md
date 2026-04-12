@@ -14,4 +14,13 @@
     4. use pm2 to start astrbot: `python main.py --webui-dir dashboard/dist`
 
   - the command i mean is to create a command line, in python use tyro
+- [x] when i run python main.py, i want the command show the help, not start directly or error command
+- [ ] create a command, user can config platforms
+- [ ] create a command, user can config platform_settings
+- [ ] create a command, user can config providers
 - [ ] create a command, user can install/uninstall/update/list/config plugins
+  - should be `python main.py plugins list/xx`, it's more clear than `python main.py list/xx`
+
+- [ ] test the debug skill use the cli is work
+
+- [ ] create a command, user can config persona

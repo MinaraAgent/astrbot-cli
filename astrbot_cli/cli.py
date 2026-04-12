@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 import tyro
 
-from src.plugin import Install, Uninstall, Update, PluginList, Search, Config as PluginConfig, Info as PluginInfo
-from src.platform import PlatformList, Add, Remove, Enable, Disable, Config as PlatformConfig, Info as PlatformInfo
-from src.platform_settings import Show, Set as SettingsSet, Get, Reset, Edit, Schema
-from src.quick_start import main as quick_start_main
+from .src.plugin import Install, Uninstall, Update, PluginList, Search, Config as PluginConfig, Info as PluginInfo
+from .src.platform import PlatformList, Add, Remove, Enable, Disable, Config as PlatformConfig, Info as PlatformInfo
+from .src.platform_settings import Show, Set as SettingsSet, Get, Reset, Edit, Schema
+from .src.quick_start import main as quick_start_main
 
 
 @dataclass
@@ -32,7 +32,7 @@ def print_help() -> None:
 AstrBot CLI - Command Line Interface for AstrBot
 
 Usage:
-    python main.py <command> [options]
+    astrbot-cli <command> [options]
 
 Commands:
     quick-start        Quick start AstrBot from source code
@@ -41,42 +41,42 @@ Commands:
     platform-settings  Configure platform settings
 
 Plugin Commands:
-    python main.py plugins list              List installed plugins
-    python main.py plugins list --all        List all available plugins
-    python main.py plugins install <name>    Install a plugin
-    python main.py plugins uninstall <name>  Uninstall a plugin
-    python main.py plugins update [name]     Update plugin(s)
-    python main.py plugins search <query>    Search for plugins
-    python main.py plugins config <name>     Configure a plugin
-    python main.py plugins info <name>       Show plugin info
+    astrbot-cli plugins list              List installed plugins
+    astrbot-cli plugins list --all        List all available plugins
+    astrbot-cli plugins install <name>    Install a plugin
+    astrbot-cli plugins uninstall <name>  Uninstall a plugin
+    astrbot-cli plugins update [name]     Update plugin(s)
+    astrbot-cli plugins search <query>    Search for plugins
+    astrbot-cli plugins config <name>     Configure a plugin
+    astrbot-cli plugins info <name>       Show plugin info
 
 Platform Commands:
-    python main.py platforms list              List configured platforms
-    python main.py platforms list --available  List available platform types
-    python main.py platforms add <type>        Add a new platform
-    python main.py platforms remove <id>       Remove a platform
-    python main.py platforms enable <id>       Enable a platform
-    python main.py platforms disable <id>      Disable a platform
-    python main.py platforms config <id>       Configure a platform
-    python main.py platforms info <id>         Show platform info
+    astrbot-cli platforms list              List configured platforms
+    astrbot-cli platforms list --available  List available platform types
+    astrbot-cli platforms add <type>        Add a new platform
+    astrbot-cli platforms remove <id>       Remove a platform
+    astrbot-cli platforms enable <id>       Enable a platform
+    astrbot-cli platforms disable <id>      Disable a platform
+    astrbot-cli platforms config <id>       Configure a platform
+    astrbot-cli platforms info <id>         Show platform info
 
 Platform Settings Commands:
-    python main.py platform-settings show              Show current settings
-    python main.py platform-settings show --defaults   Show default settings
-    python main.py platform-settings get <key>         Get a setting value
-    python main.py platform-settings set <key> <value> Set a setting value
-    python main.py platform-settings edit              Edit settings in editor
-    python main.py platform-settings reset --confirm   Reset to defaults
-    python main.py platform-settings schema            Show settings schema
+    astrbot-cli platform-settings show              Show current settings
+    astrbot-cli platform-settings show --defaults   Show default settings
+    astrbot-cli platform-settings get <key>         Get a setting value
+    astrbot-cli platform-settings set <key> <value> Set a setting value
+    astrbot-cli platform-settings edit              Edit settings in editor
+    astrbot-cli platform-settings reset --confirm   Reset to defaults
+    astrbot-cli platform-settings schema            Show settings schema
 
 Quick Start Options:
-    python main.py quick-start --help        Show quick-start options
+    astrbot-cli quick-start --help        Show quick-start options
 
 Examples:
-    python main.py quick-start               Start AstrBot setup
-    python main.py plugins list --all        See all available plugins
-    python main.py platforms add telegram    Add Telegram platform
-    python main.py platform-settings show    Show platform settings
+    astrbot-cli quick-start               Start AstrBot setup
+    astrbot-cli plugins list --all        See all available plugins
+    astrbot-cli platforms add telegram    Add Telegram platform
+    astrbot-cli platform-settings show    Show platform settings
 """)
 
 
@@ -95,7 +95,7 @@ def main() -> None:
     # Plugin subcommands
     if subcommand == "plugins":
         if len(sys.argv) < 3:
-            print("Usage: main.py plugins <command>")
+            print("Usage: astrbot-cli plugins <command>")
             print("Commands: install, uninstall, update, list, search, config, info")
             return
 
@@ -131,7 +131,7 @@ def main() -> None:
     # Platform subcommands
     elif subcommand == "platforms":
         if len(sys.argv) < 3:
-            print("Usage: main.py platforms <command>")
+            print("Usage: astrbot-cli platforms <command>")
             print("Commands: list, add, remove, enable, disable, config, info")
             return
 
@@ -167,7 +167,7 @@ def main() -> None:
     # Platform settings subcommands
     elif subcommand == "platform-settings":
         if len(sys.argv) < 3:
-            print("Usage: main.py platform-settings <command>")
+            print("Usage: astrbot-cli platform-settings <command>")
             print("Commands: show, get, set, edit, reset, schema")
             return
 
