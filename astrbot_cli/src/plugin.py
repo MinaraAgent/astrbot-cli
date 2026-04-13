@@ -28,10 +28,13 @@ from .plugin_utils import (
 class Install:
     """Install a plugin.
 
-    Can install by plugin name (from registry) or by GitHub repository URL.
+    Can install by:
+    - Plugin name (from registry)
+    - GitHub repository URL
+    - Local path (e.g., ~/path/to/plugin or /absolute/path/to/plugin)
     """
 
-    name: str  # Plugin name or GitHub repository URL
+    name: str  # Plugin name, GitHub repository URL, or local path
     proxy: str | None = None  # Proxy server for GitHub access
 
     def run(self) -> None:

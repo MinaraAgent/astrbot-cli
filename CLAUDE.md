@@ -45,22 +45,24 @@ The CLI provides two complementary execution models:
 │   ├── __init__.py                             # Package initialization
 │   └── src/                                    # Source modules
 |       ├── bots.py                             # Bot management commands
-|       ├── bots_utils.py                       # Botutilities          
-|       ├── config.py                           # Config commands        
-|       ├── config_utils.py                     # Config utilities       
-|       ├── personas.py                         # Persona commands       
+|       ├── bots_utils.py                       # Bot utilities
+|       ├── config.py                           # Config commands
+|       ├── config_utils.py                     # Config utilities
+|       ├── personas.py                         # Persona commands
 |       ├── personas_utils.py                   # Persona utilities (SQLite)
-|       ├── profiles.py                         # Profile commands       
+|       ├── profiles.py                         # Profile commands
 |       ├── profiles_utils.py                   # Profile utilities (new profiles.json)
-|       ├── providers.py                        # Provider commands      
-|       ├── providers_utils.py                  # Provider utilities     
-|       ├── workflows.py                        # Workflow commands      
-|       ├── workflows_utils.py                  # Dagu integration       
-|       ├── plugin.py                           # Plugin commands (kept) 
-|       ├── plugin_utils.py                     # Plugin utilities (kept)
-|       ├── quick_start.py                      # Quick start (kept)     
-|       ├── path_config.py                      # Path management (kept) 
-|       └── utils.py                            # General utilities (kept)
+|       ├── providers.py                        # Provider commands
+|       ├── providers_utils.py                  # Provider utilities
+|       ├── workflows.py                        # Workflow commands
+|       ├── workflows_utils.py                  # Dagu integration
+|       ├── workflows/                          # Built-in workflow templates (shipped with CLI)
+|       │   └── plugin-debug.yaml               # Plugin debug workflow
+|       ├── plugin.py                           # Plugin commands
+|       ├── plugin_utils.py                     # Plugin utilities
+|       ├── quick_start.py                      # Quick start
+|       ├── path_config.py                      # Path management
+|       └── utils.py                            # General utilities
 ├── code-repo/                                  # Storage for cloned code repositories
 │   └── github/                                 # Public GitHub repositories
 │       ├── helloworld/                         # AstrBot example plugin repository

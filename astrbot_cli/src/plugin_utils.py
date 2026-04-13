@@ -286,10 +286,10 @@ def find_plugin_by_name(name: str) -> PluginInfo | None:
 
 
 def install_plugin(name: str, proxy: str | None = None) -> PluginInfo:
-    """Install a plugin by name or URL.
+    """Install a plugin by name, URL, or local path.
 
     Args:
-        name: Plugin name or repository URL
+        name: Plugin name, repository URL, or local path
         proxy: Optional proxy server address
 
     Returns:
@@ -301,6 +301,37 @@ def install_plugin(name: str, proxy: str | None = None) -> PluginInfo:
     """
     plugins_dir = get_plugins_dir()
     plugins_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check if it's a local path
+    local_path = Path(name).expanduser().resolve()
+    if local_path.exists() and local_path.is_dir():
+        # Check for metadata.yaml to confirm it's a valid plugin
+        metadata_path = local_path / "metadata.yaml"
+        if not metadata_path.exists():
+            raise ValueError(f"'{name}' is not a valid AstrBot plugin (missing metadata.yaml)")
+
+        # Load metadata to get plugin name
+        metadata = load_yaml_metadata(local_path)
+        plugin_name = metadata.get("name", local_path.name)
+        target_path = plugins_dir / plugin_name
+
+        if target_path.exists():
+            raise ValueError(f"Plugin directory '{plugin_name}' already exists")
+
+        print(f"Installing plugin from local path: {local_path}...")
+
+        # Copy the plugin directory
+        shutil.copytree(local_path, target_path)
+
+        return PluginInfo(
+            name=str(plugin_name),
+            desc=str(metadata.get("desc", "")),
+            version=str(metadata.get("version", "0.0.0")),
+            author=str(metadata.get("author", "Unknown")),
+            repo=str(metadata.get("repo", "")),
+            status=PluginStatus.INSTALLED,
+            local_path=target_path,
+        )
 
     # Check if it's a URL
     if name.startswith("http"):

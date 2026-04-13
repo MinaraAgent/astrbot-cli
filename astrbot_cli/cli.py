@@ -1,8 +1,6 @@
 """Main entry point for AstrBot CLI."""
 
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 
 import tyro
 
@@ -13,36 +11,19 @@ from .src.providers import List as ProviderList, Add as ProviderAdd, Remove as P
 from .src.personas import List as PersonaList, Create as PersonaCreate, Edit as PersonaEdit, Delete as PersonaDelete, Show as PersonaShow
 from .src.config import Show as ConfigShow, Set as ConfigSet, Get as ConfigGet, Edit as ConfigEdit, Reset as ConfigReset, Schema as ConfigSchema
 from .src.workflows import List as WorkflowList, Start as WorkflowStart, Stop as WorkflowStop, Status as WorkflowStatus, Logs as WorkflowLogs, Create as WorkflowCreate
-from .src.system import Init as SystemInit, Upgrade as SystemUpgrade, Start as SystemStart, Stop as SystemStop, Restart as SystemRestart, Status as SystemStatus, Logs as SystemLogs, Info as SystemInfo, Version as SystemVersion
-from .src.quick_start import main as quick_start_main
-from .src.path_config import (
-    print_current_path,
-    set_astrbot_path,
-    validate_astrbot_path,
+from .src.system import (
+    Init as SystemInit,
+    Upgrade as SystemUpgrade,
+    Start as SystemStart,
+    Stop as SystemStop,
+    Restart as SystemRestart,
+    Status as SystemStatus,
+    Logs as SystemLogs,
+    Info as SystemInfo,
+    Version as SystemVersion,
+    QuickStart as SystemQuickStart,
+    Path as SystemPath,
 )
-
-
-@dataclass
-class PathCommand:
-    """Show or set the AstrBot installation path."""
-    set: Path | None = None  # Set a new AstrBot path
-    force: bool = False  # Force set even if AstrBot not installed at path
-
-
-@dataclass
-class QuickStart:
-    """Quick start AstrBot from source code.
-
-    This command will:
-    1. Check required dependencies (python3, uv, node, pnpm, pm2)
-    2. Clone AstrBot repository to the specified path
-    3. Setup Python environment with uv
-    4. Build the dashboard
-    5. Start AstrBot with PM2
-    """
-    force: bool = False
-    skip_deps: bool = False
-    path: Path | None = None  # Custom installation path
 
 
 def print_help() -> None:
@@ -54,9 +35,7 @@ Usage:
     astrbot-cli <command> [options]
 
 Commands:
-    quick-start        Quick start AstrBot from source code
-    path              Show or set the AstrBot installation path
-    system            Manage AstrBot service (start/stop/restart/status)
+    system            Manage AstrBot service (start/stop/restart/status/path/quick-start)
     bots              Manage AstrBot bots (platform connections)
     profiles          Manage configuration profiles
     plugins           Manage AstrBot plugins
@@ -65,15 +44,21 @@ Commands:
     config            Configure global settings
     workflows         Manage stateful workflows (dagu)
 
-Path Commands:
-    astrbot-cli path                  Show current AstrBot path
-    astrbot-cli path --set <path>     Set AstrBot path manually
-
-Quick Start Options:
-    astrbot-cli quick-start                    Start AstrBot (uses saved/default path)
-    astrbot-cli quick-start --path /my/path    Start AstrBot at specific path
-    astrbot-cli quick-start --force            Force reinstall
-    astrbot-cli quick-start --help             Show all options
+System Commands:
+    astrbot-cli system init                 Initialize AstrBot environment
+    astrbot-cli system upgrade              Upgrade AstrBot installation
+    astrbot-cli system start                Start AstrBot service
+    astrbot-cli system stop                 Stop AstrBot service
+    astrbot-cli system restart              Restart AstrBot service
+    astrbot-cli system status               Show service status
+    astrbot-cli system logs [lines]         View service logs
+    astrbot-cli system info                 Show AstrBot information
+    astrbot-cli system version              Show AstrBot version
+    astrbot-cli system path                 Show current AstrBot path
+    astrbot-cli system path --set <path>    Set AstrBot path manually
+    astrbot-cli system quick-start          Quick start AstrBot (uses saved/default path)
+    astrbot-cli system quick-start --path /my/path    Start at specific path
+    astrbot-cli system quick-start --force  Force reinstall
 
 Bot Commands:
     astrbot-cli bots list              List configured bots
@@ -96,7 +81,7 @@ Profile Commands:
 Plugin Commands:
     astrbot-cli plugins list              List installed plugins
     astrbot-cli plugins list --all        List all available plugins
-    astrbot-cli plugins install <name>    Install a plugin
+    astrbot-cli plugins install <name>    Install a plugin (name, URL, or local path)
     astrbot-cli plugins uninstall <name>  Uninstall a plugin
     astrbot-cli plugins update [name]     Update plugin(s)
     astrbot-cli plugins search <query>    Search for plugins
@@ -137,25 +122,14 @@ Workflow Commands:
     astrbot-cli workflows logs <name>       Show workflow logs
     astrbot-cli workflows create <name>     Create a new workflow
 
-System Commands:
-    astrbot-cli system init                 Initialize AstrBot environment
-    astrbot-cli system upgrade              Upgrade AstrBot installation
-    astrbot-cli system start                Start AstrBot service
-    astrbot-cli system stop                 Stop AstrBot service
-    astrbot-cli system restart             Restart AstrBot service
-    astrbot-cli system status               Show service status
-    astrbot-cli system logs [lines]         View service logs
-    astrbot-cli system info                 Show AstrBot information
-    astrbot-cli system version              Show AstrBot version
-
 Examples:
-    astrbot-cli quick-start                        Start AstrBot at default location
-    astrbot-cli quick-start --path ~/my-astrbot    Start AstrBot at custom location
-    astrbot-cli path                               Show where AstrBot is installed
-    astrbot-cli bots add telegram                  Add Telegram bot
-    astrbot-cli providers add openai               Add OpenAI provider
-    astrbot-cli profiles create my-profile         Create a new profile
-    astrbot-cli config show                        Show configuration
+    astrbot-cli system quick-start                        Start AstrBot at default location
+    astrbot-cli system quick-start --path ~/my-astrbot    Start AstrBot at custom location
+    astrbot-cli system path                               Show where AstrBot is installed
+    astrbot-cli bots add telegram                         Add Telegram bot
+    astrbot-cli providers add openai                      Add OpenAI provider
+    astrbot-cli profiles create my-profile                Create a new profile
+    astrbot-cli config show                               Show configuration
 """)
 
 
@@ -401,66 +375,11 @@ def main() -> None:
             print(f"Unknown workflow command: {workflow_cmd}")
             print("Commands: list, start, stop, status, logs, create")
 
-    # Path command
-    elif subcommand == "path":
-        if len(sys.argv) < 3:
-            print_current_path()
-            return
-
-        path_cmd = sys.argv[2]
-        if path_cmd == "--set" or path_cmd == "-s":
-            if len(sys.argv) < 4:
-                print("Usage: astrbot-cli path --set <path> [--force]")
-                return
-            new_path = Path(sys.argv[3]).resolve()
-            force_set = "--force" in sys.argv or "-f" in sys.argv
-            if force_set or (new_path / "main.py").exists():
-                set_astrbot_path(new_path)
-                print(f"✅ AstrBot path set to: {new_path}")
-            else:
-                print(f"❌ AstrBot not found at: {new_path}")
-                print("   Use --force to set this path anyway.")
-                sys.exit(1)
-        elif path_cmd in ["--help", "-h"]:
-            print("""
-astrbot-cli path - Show or set AstrBot installation path
-
-Usage:
-    astrbot-cli path                  Show current AstrBot path
-    astrbot-cli path --set <path>     Set AstrBot path manually
-    astrbot-cli path --set <path> --force  Force set path (even if AstrBot not installed)
-
-The path is saved in ~/.astrbot-cli/config.json and is used by all
-CLI commands to locate the AstrBot installation.
-
-Examples:
-    astrbot-cli path
-    astrbot-cli path --set ~/my-astrbot
-    astrbot-cli path --set /opt/astrbot
-    astrbot-cli path --set /new/path --force  # Set path before installing
-""")
-        else:
-            args = tyro.cli(PathCommand, args=sys.argv[2:])
-            if args.set:
-                if args.force or (args.set / "main.py").exists():
-                    set_astrbot_path(args.set)
-                    print(f"✅ AstrBot path set to: {args.set}")
-                else:
-                    print(f"❌ AstrBot not found at: {args.set}")
-                    print("   Use --force to set this path anyway.")
-                    sys.exit(1)
-            else:
-                print_current_path()
-
-    elif subcommand == "quick-start":
-        args = tyro.cli(QuickStart, args=sys.argv[2:])
-        quick_start_main(force=args.force, skip_deps=args.skip_deps, path=args.path)
-
     # System subcommands
     elif subcommand == "system":
         if len(sys.argv) < 3:
             print("Usage: astrbot-cli system <command>")
-            print("Commands: init, upgrade, start, stop, restart, status, logs, info, version")
+            print("Commands: init, upgrade, start, stop, restart, status, logs, info, version, path, quick-start")
             return
 
         system_cmd = sys.argv[2]
@@ -493,14 +412,19 @@ Examples:
         elif system_cmd == "version":
             args = tyro.cli(SystemVersion, args=cmd_args)
             args.run()
+        elif system_cmd == "path":
+            args = tyro.cli(SystemPath, args=cmd_args)
+            args.run()
+        elif system_cmd == "quick-start":
+            args = tyro.cli(SystemQuickStart, args=cmd_args)
+            args.run()
         else:
             print(f"Unknown system command: {system_cmd}")
-            print("Commands: init, upgrade, start, stop, restart, status, logs, info, version")
+            print("Commands: init, upgrade, start, stop, restart, status, logs, info, version, path, quick-start")
 
     else:
-        # Treat as quick-start with legacy args for backward compatibility
-        args = tyro.cli(QuickStart, args=sys.argv[1:])
-        quick_start_main(force=args.force, skip_deps=args.skip_deps, path=args.path)
+        print(f"Unknown command: {subcommand}")
+        print("Commands: system, bots, profiles, plugins, providers, personas, config, workflows")
 
 
 if __name__ == "__main__":

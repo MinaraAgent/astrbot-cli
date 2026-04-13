@@ -20,7 +20,7 @@ from .workflows_utils import (
 class List:
     """List all workflows.
 
-    Show all available workflow files.
+    Show all available workflow files (built-in and user-created).
     """
 
     def run(self) -> None:
@@ -29,14 +29,15 @@ class List:
 
         if workflows:
             print("\nAvailable Workflows:")
-            print("-" * 60)
-            print(f"{'Name':<30} {'Status':<15}")
-            print("-" * 60)
+            print("-" * 70)
+            print(f"{'Name':<30} {'Status':<12} {'Type':<10}")
+            print("-" * 70)
 
             for wf in workflows:
                 status_info = get_workflow_status(wf["name"])
                 status = status_info.get("status", "unknown") if status_info else "unknown"
-                print(f"{wf['name']:<30} {status:<15}")
+                wf_type = "built-in" if wf.get("builtin") else "user"
+                print(f"{wf['name']:<30} {status:<12} {wf_type:<10}")
         else:
             print("No workflows found.")
             print("Create one with: astrbot-cli workflows create <name>")
@@ -50,16 +51,19 @@ class Start:
     """
 
     name: Annotated[str, tyro.conf.Positional]  # Workflow name to start
+    params: Annotated[list[str] | None, tyro.conf.Positional] = None  # Parameters as KEY=VALUE pairs
 
     def run(self) -> None:
         """Execute the start command."""
-        result = start_workflow(self.name)
+        result = start_workflow(self.name, self.params)
         if result.get("success"):
             print(f"Workflow '{self.name}' started successfully")
             if result.get("output"):
                 print(result["output"])
         else:
             print(f"Error: {result.get('error', 'Unknown error')}")
+            if result.get("output"):
+                print(result["output"])
 
 
 @dataclass
