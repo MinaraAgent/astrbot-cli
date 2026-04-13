@@ -7,8 +7,7 @@ from typing import Any
 
 import httpx
 
-# Constants
-ASTROBOT_CONFIG_PATH = Path.cwd() / "data" / "astrbot" / "data" / "cmd_config.json"
+from .path_config import get_astrbot_root, get_cmd_config_path
 
 # Known platform types with their descriptions
 KNOWN_PLATFORMS = {
@@ -35,14 +34,9 @@ KNOWN_PLATFORMS = {
 }
 
 
-def get_astrbot_root() -> Path:
-    """Get the AstrBot root directory."""
-    return Path.cwd() / "data" / "astrbot"
-
-
 def get_config_path() -> Path:
     """Get the AstrBot config file path."""
-    return ASTROBOT_CONFIG_PATH
+    return get_cmd_config_path()
 
 
 def load_config() -> dict:

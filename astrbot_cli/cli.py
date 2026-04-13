@@ -2,6 +2,7 @@
 
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import tyro
 
@@ -9,6 +10,18 @@ from .src.plugin import Install, Uninstall, Update, PluginList, Search, Config a
 from .src.platform import PlatformList, Add, Remove, Enable, Disable, Config as PlatformConfig, Info as PlatformInfo
 from .src.platform_settings import Show, Set as SettingsSet, Get, Reset, Edit, Schema
 from .src.quick_start import main as quick_start_main
+from .src.path_config import (
+    print_current_path,
+    set_astrbot_path,
+    validate_astrbot_path,
+)
+
+
+@dataclass
+class PathCommand:
+    """Show or set the AstrBot installation path."""
+    set: Path | None = None  # Set a new AstrBot path
+    force: bool = False  # Force set even if AstrBot not installed at path
 
 
 @dataclass
@@ -17,13 +30,14 @@ class QuickStart:
 
     This command will:
     1. Check required dependencies (python3, uv, node, pnpm, pm2)
-    2. Clone AstrBot repository to data/astrbot/
+    2. Clone AstrBot repository to the specified path
     3. Setup Python environment with uv
     4. Build the dashboard
     5. Start AstrBot with PM2
     """
     force: bool = False
     skip_deps: bool = False
+    path: Path | None = None  # Custom installation path
 
 
 def print_help() -> None:
@@ -36,9 +50,20 @@ Usage:
 
 Commands:
     quick-start        Quick start AstrBot from source code
-    plugins            Manage AstrBot plugins
-    platforms          Manage AstrBot platforms
-    platform-settings  Configure platform settings
+    path              Show or set the AstrBot installation path
+    plugins           Manage AstrBot plugins
+    platforms         Manage AstrBot platforms
+    platform-settings Configure platform settings
+
+Path Commands:
+    astrbot-cli path                  Show current AstrBot path
+    astrbot-cli path --set <path>     Set AstrBot path manually
+
+Quick Start Options:
+    astrbot-cli quick-start                    Start AstrBot (uses saved/default path)
+    astrbot-cli quick-start --path /my/path    Start AstrBot at specific path
+    astrbot-cli quick-start --force            Force reinstall
+    astrbot-cli quick-start --help             Show all options
 
 Plugin Commands:
     astrbot-cli plugins list              List installed plugins
@@ -69,14 +94,13 @@ Platform Settings Commands:
     astrbot-cli platform-settings reset --confirm   Reset to defaults
     astrbot-cli platform-settings schema            Show settings schema
 
-Quick Start Options:
-    astrbot-cli quick-start --help        Show quick-start options
-
 Examples:
-    astrbot-cli quick-start               Start AstrBot setup
-    astrbot-cli plugins list --all        See all available plugins
-    astrbot-cli platforms add telegram    Add Telegram platform
-    astrbot-cli platform-settings show    Show platform settings
+    astrbot-cli quick-start                        Start AstrBot at default location
+    astrbot-cli quick-start --path ~/my-astrbot    Start AstrBot at custom location
+    astrbot-cli path                               Show where AstrBot is installed
+    astrbot-cli plugins list --all                 See all available plugins
+    astrbot-cli platforms add telegram             Add Telegram platform
+    astrbot-cli platform-settings show             Show platform settings
 """)
 
 
@@ -197,13 +221,67 @@ def main() -> None:
             print(f"Unknown platform-settings command: {settings_cmd}")
             print("Commands: show, get, set, edit, reset, schema")
 
+    # Path command
+    elif subcommand == "path":
+        if len(sys.argv) < 3:
+            # No subcommand, show current path
+            print_current_path()
+            return
+
+        path_cmd = sys.argv[2]
+        if path_cmd == "--set" or path_cmd == "-s":
+            if len(sys.argv) < 4:
+                print("Usage: astrbot-cli path --set <path> [--force]")
+                return
+            new_path = Path(sys.argv[3]).resolve()
+            # Check for --force flag
+            force_set = "--force" in sys.argv or "-f" in sys.argv
+            if force_set or (new_path / "main.py").exists():
+                set_astrbot_path(new_path)
+                print(f"✅ AstrBot path set to: {new_path}")
+            else:
+                print(f"❌ AstrBot not found at: {new_path}")
+                print("   Use --force to set this path anyway.")
+                sys.exit(1)
+        elif path_cmd in ["--help", "-h"]:
+            print("""
+astrbot-cli path - Show or set AstrBot installation path
+
+Usage:
+    astrbot-cli path                  Show current AstrBot path
+    astrbot-cli path --set <path>     Set AstrBot path manually
+    astrbot-cli path --set <path> --force  Force set path (even if AstrBot not installed)
+
+The path is saved in ~/.astrbot-cli/config.json and is used by all
+CLI commands to locate the AstrBot installation.
+
+Examples:
+    astrbot-cli path
+    astrbot-cli path --set ~/my-astrbot
+    astrbot-cli path --set /opt/astrbot
+    astrbot-cli path --set /new/path --force  # Set path before installing
+""")
+        else:
+            # Try to parse as PathCommand
+            args = tyro.cli(PathCommand, args=sys.argv[2:])
+            if args.set:
+                if args.force or (args.set / "main.py").exists():
+                    set_astrbot_path(args.set)
+                    print(f"✅ AstrBot path set to: {args.set}")
+                else:
+                    print(f"❌ AstrBot not found at: {args.set}")
+                    print("   Use --force to set this path anyway.")
+                    sys.exit(1)
+            else:
+                print_current_path()
+
     elif subcommand == "quick-start":
         args = tyro.cli(QuickStart, args=sys.argv[2:])
-        quick_start_main(force=args.force, skip_deps=args.skip_deps)
+        quick_start_main(force=args.force, skip_deps=args.skip_deps, path=args.path)
     else:
         # Treat as quick-start with legacy args for backward compatibility
         args = tyro.cli(QuickStart, args=sys.argv[1:])
-        quick_start_main(force=args.force, skip_deps=args.skip_deps)
+        quick_start_main(force=args.force, skip_deps=args.skip_deps, path=args.path)
 
 
 if __name__ == "__main__":

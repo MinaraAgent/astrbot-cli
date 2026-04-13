@@ -13,6 +13,7 @@ import httpx
 import yaml
 
 from .utils import run_command_capture
+from .path_config import get_astrbot_root, get_plugins_dir, get_config_dir
 
 # Constants
 PLUGIN_REGISTRY_URL = "https://api.soulter.top/astrbot/plugins"
@@ -43,21 +44,6 @@ class PluginInfo:
     def __str__(self) -> str:
         desc_display = self.desc[:30] + "..." if len(self.desc) > 30 else self.desc
         return f"{self.name:<20} {self.version:<10} {self.status.value:<12} {self.author:<15} {desc_display}"
-
-
-def get_astrbot_root() -> Path:
-    """Get the AstrBot root directory."""
-    return Path.cwd() / "data" / "astrbot"
-
-
-def get_plugins_dir() -> Path:
-    """Get the plugins directory path."""
-    return get_astrbot_root() / "data" / "plugins"
-
-
-def get_config_dir() -> Path:
-    """Get the config directory path."""
-    return get_astrbot_root() / "data" / "config"
 
 
 def load_yaml_metadata(plugin_dir: Path) -> dict:

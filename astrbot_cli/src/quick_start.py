@@ -3,6 +3,7 @@
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import tyro
@@ -16,8 +17,12 @@ from .utils import (
     prompt_confirm,
     run_command,
 )
+from .path_config import (
+    set_astrbot_path,
+    get_astrbot_path,
+    load_cli_config,
+)
 
-WORKING_DIR = Path.cwd() / "data" / "astrbot"
 PM2_PROCESS_NAME = "astrbot"
 
 
@@ -89,12 +94,13 @@ def start_with_pm2(working_dir: Path) -> None:
 def main(
     force: bool = False,
     skip_deps: bool = False,
+    path: Path | None = None,
 ) -> None:
     """Quick start AstrBot from source code.
 
     This command will:
     1. Check required dependencies (python3, uv, node, pnpm, pm2)
-    2. Clone AstrBot repository to data/astrbot/
+    2. Clone AstrBot repository to the specified path
     3. Setup Python environment with uv
     4. Build the dashboard
     5. Start AstrBot with PM2
@@ -102,8 +108,22 @@ def main(
     Args:
         force: Force reinstall even if directory exists.
         skip_deps: Skip dependency checking.
+        path: Custom installation path. If not specified, uses saved path or default.
     """
     print_header()
+
+    # Determine working directory
+    if path:
+        working_dir = path.resolve()
+    else:
+        # Check if there's a saved path, otherwise use default
+        config = load_cli_config()
+        if config.astrbot_path:
+            working_dir = Path(config.astrbot_path)
+            print(f"\n📁 Using saved path: {working_dir}")
+        else:
+            # Default path
+            working_dir = Path.cwd() / "data" / "astrbot"
 
     # Step 1: Check dependencies
     if not skip_deps:
@@ -122,37 +142,41 @@ def main(
         print("\n⏭️  Skipping dependency check")
 
     # Step 2: Setup working directory
-    print(f"\n📁 Working directory: {WORKING_DIR}")
+    print(f"\n📁 Working directory: {working_dir}")
 
-    if WORKING_DIR.exists():
+    if working_dir.exists():
         if force:
             print("🗑️  Removing existing directory...")
-            shutil.rmtree(WORKING_DIR)
-        elif not (WORKING_DIR / "main.py").exists():
+            shutil.rmtree(working_dir)
+        elif not (working_dir / "main.py").exists():
             pass  # Directory exists but empty, continue
         else:
             print("⚠️  Directory already exists. Use --force to reinstall.")
             if not prompt_confirm("Continue anyway?", default=False):
                 sys.exit(1)
 
-    WORKING_DIR.mkdir(parents=True, exist_ok=True)
+    working_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 3: Clone repository
-    if not (WORKING_DIR / "main.py").exists():
+    if not (working_dir / "main.py").exists():
         print(f"\n📥 Cloning AstrBot from {REPO_URL}...")
-        clone_repo(REPO_URL, WORKING_DIR)
+        clone_repo(REPO_URL, working_dir)
         print("✅ Repository cloned successfully")
     else:
         print("\n✅ Repository already exists, skipping clone")
 
     # Step 4: Setup Python environment
-    setup_python_env(WORKING_DIR)
+    setup_python_env(working_dir)
 
     # Step 5: Build dashboard
-    build_dashboard(WORKING_DIR)
+    build_dashboard(working_dir)
 
     # Step 6: Start with PM2
-    start_with_pm2(WORKING_DIR)
+    start_with_pm2(working_dir)
+
+    # Save the path to config so other commands can find it
+    set_astrbot_path(working_dir)
+    print(f"\n💾 Saved AstrBot path to config: {working_dir}")
 
     # Done!
     print("\n" + "=" * 50)

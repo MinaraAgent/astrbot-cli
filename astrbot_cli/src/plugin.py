@@ -163,6 +163,7 @@ class Config:
     edit: bool = False  # Open config in editor
     set: str | None = None  # Set a config value (format: key=value)
     get: str | None = None  # Get a config value
+    all: bool = False  # Show all config values including defaults
 
     def run(self) -> None:
         """Execute the config command."""
@@ -239,6 +240,28 @@ class Config:
                 print("Configuration saved")
             except json.JSONDecodeError as e:
                 print(f"Error: Invalid JSON in config file: {e}")
+
+        elif self.all:
+            # Display all config values including defaults
+            print(f"\nConfiguration for '{self.name}' (all values):")
+            if schema:
+                merged_config = {}
+                for key, info in schema.items():
+                    default = info.get("default")
+                    desc = info.get("description", info.get("desc", ""))
+                    hint = info.get("hint", "")
+                    merged_config[key] = {
+                        "value": config.get(key, default),
+                        "default": default,
+                        "description": desc,
+                    }
+                    if hint:
+                        merged_config[key]["hint"] = hint
+                print(json.dumps(merged_config, indent=2, ensure_ascii=False))
+            elif config:
+                print(json.dumps(config, indent=2, ensure_ascii=False))
+            else:
+                print("No configuration available")
 
         else:
             # Display current config
