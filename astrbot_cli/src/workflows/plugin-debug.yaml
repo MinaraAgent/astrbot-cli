@@ -1,0 +1,188 @@
+# AstrBot Plugin Debug Workflow
+# This workflow helps debug a plugin by setting up AstrBot and installing/configuring a plugin
+#
+# Usage:
+#   astrbot-cli workflows start plugin-debug
+#   astrbot-cli workflows start plugin-debug --params PLUGIN_NAME=my-plugin
+#
+# Required Parameters:
+#   PLUGIN_NAME: Name of the plugin to debug (required)
+#
+# Optional Parameters:
+#   PLUGIN_REPO: Git repository URL for the plugin (for installation)
+#   PLUGIN_CONFIG: JSON config string for the plugin
+#   BOT_TYPE: Bot type to configure (e.g., telegram, qq, discord)
+#   BOT_CONFIG: JSON config string for the bot
+#   PERSONA_ID: Persona ID to use
+#   PERSONA_PROMPT: Persona prompt text
+#   PROFILE_PROVIDER: Provider ID to use in profile
+
+type: graph
+name: plugin-debug
+description: Debug workflow for AstrBot plugins - sets up environment, installs plugin, configures optional settings
+
+# Parameters (all arrive as strings)
+params:
+  - PLUGIN_NAME: ""
+  - PLUGIN_REPO: ""
+  - PLUGIN_CONFIG: ""
+  - BOT_TYPE: ""
+  - BOT_CONFIG: ""
+  - PERSONA_ID: ""
+  - PERSONA_PROMPT: ""
+  - PROFILE_PROVIDER: ""
+
+# Steps
+steps:
+  # Step 1: Validate required parameters
+  - id: validate_params
+    command: |
+      echo "=== Plugin Debug Workflow ==="
+      if [ -z "$PLUGIN_NAME" ]; then
+        echo ""
+        echo "ERROR: PLUGIN_NAME is required but not provided."
+        echo ""
+        echo "Usage:"
+        echo "  astrbot-cli workflows start plugin-debug --params PLUGIN_NAME=<plugin-name>"
+        echo ""
+        echo "Example:"
+        echo "  astrbot-cli workflows start plugin-debug --params PLUGIN_NAME=astrbot_plugin_example"
+        echo ""
+        echo "Optional parameters:"
+        echo "  PLUGIN_REPO      - Git repository URL for the plugin"
+        echo "  PLUGIN_CONFIG    - JSON config string for the plugin"
+        echo "  BOT_TYPE         - Bot type (telegram, qq, discord)"
+        echo "  BOT_CONFIG       - JSON config string for the bot"
+        echo "  PERSONA_ID       - Persona ID to use"
+        echo "  PERSONA_PROMPT   - Persona prompt text"
+        echo "  PROFILE_PROVIDER - Provider ID to use in profile"
+        exit 1
+      fi
+      echo "Plugin: $PLUGIN_NAME"
+      if [ -n "$PLUGIN_REPO" ]; then
+        echo "Plugin Repo: $PLUGIN_REPO"
+      fi
+      astrbot-cli system info
+      echo "============================="
+
+  # Step 2: Restart AstrBot service
+  - id: restart_astrbot
+    depends: [validate_params]
+    command: |
+      echo "Restarting AstrBot..."
+      astrbot-cli system restart
+      sleep 5
+      astrbot-cli system status
+
+  # Step 3: Check if plugin exists, install if not
+  - id: check_and_install_plugin
+    depends: [restart_astrbot]
+    command: |
+      echo "=== Checking Plugin: $PLUGIN_NAME ==="
+      if astrbot-cli plugins list | grep -q "$PLUGIN_NAME"; then
+        echo "Plugin '$PLUGIN_NAME' is already installed"
+      else
+        echo "Plugin '$PLUGIN_NAME' not found, installing..."
+        if [ -n "$PLUGIN_REPO" ]; then
+          astrbot-cli plugins install --name "$PLUGIN_REPO"
+        else
+          echo "Attempting to install from plugin name..."
+          astrbot-cli plugins install --name "$PLUGIN_NAME"
+        fi
+      fi
+      astrbot-cli plugins info --name "$PLUGIN_NAME"
+
+  # Step 4: Configure plugin (optional)
+  - id: config_plugin
+    depends: [check_and_install_plugin]
+    command: |
+      if [ -n "$PLUGIN_CONFIG" ]; then
+        echo "=== Configuring Plugin ==="
+        echo "$PLUGIN_CONFIG" | astrbot-cli plugins config --name "$PLUGIN_NAME"
+        echo "Plugin configured"
+      else
+        echo "No plugin configuration provided, skipping..."
+      fi
+
+  # Step 6: Configure bot (optional)
+  - id: config_bot
+    depends: [config_plugin]
+    command: |
+      if [ -n "$BOT_TYPE" ] && [ -n "$BOT_CONFIG" ]; then
+        echo "=== Configuring Bot ==="
+        # Check if bot already exists, if not add it
+        if astrbot-cli bots list | grep -q "$BOT_TYPE"; then
+          echo "Bot type '$BOT_TYPE' already configured"
+        else
+          echo "Adding bot type: $BOT_TYPE"
+          astrbot-cli bots add "$BOT_TYPE"
+        fi
+        echo "$BOT_CONFIG" | astrbot-cli bots config "$BOT_TYPE"
+        echo "Bot configured"
+      else
+        echo "No bot configuration provided, skipping..."
+      fi
+
+  # Step 7: Configure persona (optional)
+  - id: config_persona
+    depends: [config_bot]
+    command: |
+      if [ -n "$PERSONA_ID" ] && [ -n "$PERSONA_PROMPT" ]; then
+        echo "=== Configuring Persona ==="
+        if astrbot-cli personas list | grep -q "$PERSONA_ID"; then
+          echo "Updating existing persona: $PERSONA_ID"
+          astrbot-cli personas edit "$PERSONA_ID" --prompt "$PERSONA_PROMPT"
+        else
+          echo "Creating new persona: $PERSONA_ID"
+          astrbot-cli personas create "$PERSONA_ID" "$PERSONA_PROMPT"
+        fi
+        echo "Persona configured"
+      else
+        echo "No persona configuration provided, skipping..."
+      fi
+
+  # Step 8: Configure profile provider (optional)
+  - id: config_profile
+    depends: [config_persona]
+    command: |
+      if [ -n "$PROFILE_PROVIDER" ]; then
+        echo "=== Configuring Profile ==="
+        PROFILE_ID=$(astrbot-cli profiles list | grep -oP 'id:\s*\K[^\s]+' | head -1)
+        if [ -n "$PROFILE_ID" ]; then
+          echo "Setting provider '$PROFILE_PROVIDER' for profile '$PROFILE_ID'"
+          astrbot-cli profiles set "$PROFILE_ID" --provider "$PROFILE_PROVIDER"
+        else
+          echo "No profile found, creating default profile..."
+          astrbot-cli profiles create default
+          astrbot-cli profiles set default --provider "$PROFILE_PROVIDER"
+        fi
+        echo "Profile configured"
+      else
+        echo "No profile configuration provided, skipping..."
+      fi
+
+  # Step 9: Show final status and logs
+  - id: show_status
+    depends: [config_profile]
+    command: |
+      echo "=== Final Status ==="
+      echo ""
+      echo "--- System Status ---"
+      astrbot-cli system status
+      echo ""
+      echo "--- Installed Plugins ---"
+      astrbot-cli plugins list
+      echo ""
+      echo "--- Configured Bots ---"
+      astrbot-cli bots list
+      echo ""
+      echo "=== Plugin Debug Ready ==="
+      echo "Plugin '$PLUGIN_NAME' is ready for debugging"
+      echo "Use 'astrbot-cli system logs' to monitor logs"
+
+  # Step 10: Show recent logs
+  - id: show_logs
+    depends: [show_status]
+    command: |
+      echo "=== Recent Logs ==="
+      astrbot-cli system logs 50
